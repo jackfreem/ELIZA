@@ -253,6 +253,23 @@
       }
     ]
   },
+  "links": {
+    "dislike": "hate",
+    "despise": "hate",
+    "detest": "hate",
+    "loathe": "hate",
+    "belief": "think",
+    "believe": "think",
+    "suppose": "think",
+    "desire": "want",
+    "wish": "want",
+    "crave": "want",
+    "require": "need",
+    "sense": "feel",
+    "perceive": "feel",
+    "nobody": "everyone",
+    "no one": "everyone"
+  },
   "pre": [
     ["i'm", "i am"],
     ["you're", "you are"],

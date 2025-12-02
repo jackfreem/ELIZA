@@ -47,6 +47,7 @@ class Eliza:
         self.keywords: Dict[str, Dict] = {}
         self.default_responses: List[str] = []
         self.initial_prompts: List[str] = []
+        self.links: Dict[str, str] = {}  # DLIST: link words -> target keywords
         
         try:
             script_loader = ScriptLoader(script_path)
@@ -54,6 +55,7 @@ class Eliza:
             self.keywords = script_loader.get_keywords()
             self.default_responses = script_loader.get_default_responses()
             self.initial_prompts = script_loader.get_initial_prompts()
+            self.links = script_loader.get_links()  # Load DLIST
             
             # Update transformations with script data
             pre_transforms = script_loader.get_pre_transforms()
@@ -295,9 +297,24 @@ class Eliza:
         """
         Find the highest priority keyword that appears in the text.
         
+        DLIST (Link Words): Check link words first before regular keywords.
+        If a link word is found, redirect to its target keyword.
+        
         Returns:
             Tuple of (keyword, keyword_data) or None if no match
         """
+        # DLIST: Check for link words FIRST (before regular keywords)
+        # Link words redirect to other keywords for processing
+        # Example: "alike" -> "like" uses the "like" keyword's patterns
+        for link_word, target_keyword in self.links.items():
+            if link_word in text:
+                # Link word found! Redirect to target keyword
+                if target_keyword in self.keywords:
+                    # Return the target keyword's data
+                    return (target_keyword, self.keywords[target_keyword])
+                # If target keyword doesn't exist, ignore this link and continue
+        
+        # No link matched - check regular keywords by rank
         # Sort keywords by rank (higher rank = higher priority)
         sorted_keywords = sorted(
             self.keywords.items(),
