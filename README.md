@@ -13,6 +13,7 @@ This is a complete implementation of the ELIZA chatbot system described in Josep
 - ✅ Pre and post-transformations
 - ✅ Script system (loads from JSON)
 - ✅ Memory system (MEMORY pseudo-keyword)
+- ✅ **DLIST (Link Words)** - Words that redirect to other keywords
 
 ## Installation
 
@@ -79,6 +80,31 @@ ELIZA/
 ## Script Format
 
 Scripts are defined in JSON format. See `scripts/doctor.json` for an example.
+
+### DLIST (Link Words)
+
+DLIST allows words to redirect to other keywords for processing. This extends keyword coverage without duplicating patterns.
+
+**Example from `doctor.json`:**
+```json
+"links": {
+  "dislike": "hate",
+  "believe": "think",
+  "desire": "want",
+  "require": "need",
+  "nobody": "everyone"
+}
+```
+
+**How it works:**
+- User says: "I believe life is hard"
+- "believe" redirects to "think" keyword
+- Uses "think" keyword's patterns: "What makes you think life is hard?"
+
+**Benefits:**
+- Extend vocabulary without writing new patterns
+- Simple and efficient
+- No pattern duplication
 
 ## Learning Resources
 

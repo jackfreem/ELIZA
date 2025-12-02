@@ -177,4 +177,19 @@ class ScriptLoader:
             "Is something troubling you?",
             "What seems to be the problem?"
         ])
+    
+    def get_links(self) -> Dict[str, str]:
+        """
+        Extract link words (DLIST) from script.
+        
+        Link words redirect to other keywords for processing.
+        Example: "alike" -> "like" means "alike" uses "like" keyword's patterns.
+        
+        Returns:
+            Dictionary mapping link_word -> target_keyword
+        """
+        if self.script_data is None:
+            raise ValueError("Script not loaded. Call load() first.")
+        
+        return self.script_data.get("links", {})
 
