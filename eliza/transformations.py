@@ -17,19 +17,35 @@ class Transformations:
     Post-transformations adjust responses to feel more natural.
     """
     
-    def __init__(self, preserve_keywords: List[str] = None):
+    def __init__(self, preserve_keywords: List[str] = None, 
+                 pre_transforms: List[List[str]] = None,
+                 post_transforms: List[List[str]] = None,
+                 synonyms: Dict[str, List[str]] = None):
         """
         Initialize transformations.
         
         Args:
             preserve_keywords: List of keywords to preserve (don't normalize)
                               These are typically keywords used for pattern matching
+            pre_transforms: List of [pattern, replacement] pairs for pre-transforms
+                           If None, uses defaults
+            post_transforms: List of [pattern, replacement] pairs for post-transforms
+                            If None, uses defaults
+            synonyms: Dictionary mapping canonical -> variations
+                     If None, uses defaults
         """
         self.preserve_keywords = preserve_keywords or []
         
         # Pre-transformations: Applied to user input BEFORE pattern matching
         # These normalize the text to make patterns match more reliably
-        self.pre_transforms: List[Tuple[str, str]] = [
+        if pre_transforms is not None:
+            # Convert from script format [pattern, replacement] to tuple format
+            self.pre_transforms: List[Tuple[str, str]] = [
+                (pattern, replacement) for pattern, replacement in pre_transforms
+            ]
+        else:
+            # Use defaults
+            self.pre_transforms: List[Tuple[str, str]] = [
             # Contractions
             (r"i'm", "i am"),
             (r"you're", "you are"),
@@ -86,24 +102,36 @@ class Transformations:
         # Post-transformations: Applied to responses AFTER reassembly
         # These make responses feel more natural by switching pronouns
         # Note: We need to be careful - some phrases like "tell me" should stay as "tell me"
-        self.post_transforms: List[Tuple[str, str]] = [
-            # First person to second person (user's perspective)
-            # But avoid changing "me" in common phrases like "tell me"
-            (r"\bam\b", "are"),
-            (r"\bis\b", "are"),
-            (r"\bwas\b", "were"),
-            (r"\bi\b", "you"),
-            (r"\bmy\b", "your"),
-            (r"\bmyself\b", "yourself"),
-            # Only change "me" if it's not part of "tell me" or similar phrases
-            # This is a simplified approach - in practice, we'd need more context
-            (r"\bme\b(?!\s+(?:more|about|how|what|why|when|where))", "you"),
-            (r"\bmine\b", "yours"),
-        ]
+        if post_transforms is not None:
+            # Convert from script format [pattern, replacement] to tuple format
+            # Script uses simple strings, so we add word boundaries to avoid partial matches
+            self.post_transforms: List[Tuple[str, str]] = [
+                (r"\b" + pattern + r"\b", replacement) for pattern, replacement in post_transforms
+            ]
+        else:
+            # Use defaults
+            self.post_transforms: List[Tuple[str, str]] = [
+                # First person to second person (user's perspective)
+                # But avoid changing "me" in common phrases like "tell me"
+                (r"\bam\b", "are"),
+                (r"\bis\b", "are"),
+                (r"\bwas\b", "were"),
+                (r"\bi\b", "you"),
+                (r"\bmy\b", "your"),
+                (r"\bmyself\b", "yourself"),
+                # Only change "me" if it's not part of "tell me" or similar phrases
+                # This is a simplified approach - in practice, we'd need more context
+                (r"\bme\b(?!\s+(?:more|about|how|what|why|when|where))", "you"),
+                (r"\bmine\b", "yours"),
+            ]
         
         # Synonyms: Map variations to a canonical form
         # This helps patterns match even when users use different words
-        self.synonyms: Dict[str, List[str]] = {
+        if synonyms is not None:
+            self.synonyms: Dict[str, List[str]] = synonyms
+        else:
+            # Use defaults
+            self.synonyms: Dict[str, List[str]] = {
             "be": ["am", "is", "are", "was", "were", "being", "been"],
             "feel": ["feeling", "felt"],
             "think": ["thinking", "thought", "believe", "believing"],

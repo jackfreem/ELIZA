@@ -1,16 +1,19 @@
 """
 Core ELIZA engine - Pattern matching and response generation
 
-Now with decomposition, reassembly, and transformations!
+Now with decomposition, reassembly, transformations, and script loading!
 - Decomposition/reassembly: Extract parts and use them in responses
 - Transformations: Normalize input and adjust responses
+- Script system: Load conversation patterns from JSON files
 """
 
+import json
 import re
 import random
 from typing import Dict, List, Optional, Tuple
 
 from eliza.transformations import Transformations
+from eliza.script import ScriptLoader
 
 
 class Eliza:
@@ -31,7 +34,45 @@ class Eliza:
         Post-transform: "Why are you sad?" (already correct)
     """
     
-    def __init__(self):
+    def __init__(self, script_path: Optional[str] = None):
+        """
+        Initialize ELIZA.
+        
+        Args:
+            script_path: Path to script JSON file. If None, uses default DOCTOR script.
+                        If script loading fails, falls back to hardcoded patterns.
+        """
+        # Try to load from script file
+        self.keywords: Dict[str, Dict] = {}
+        self.default_responses: List[str] = []
+        
+        try:
+            script_loader = ScriptLoader(script_path)
+            script_data = script_loader.load()
+            self.keywords = script_loader.get_keywords()
+            self.default_responses = script_loader.get_default_responses()
+            
+            # Update transformations with script data
+            pre_transforms = script_loader.get_pre_transforms()
+            post_transforms = script_loader.get_post_transforms()
+            synonyms = script_loader.get_synonyms()
+            keywords_to_preserve = list(self.keywords.keys())
+            
+            self.transformations = Transformations(
+                preserve_keywords=keywords_to_preserve,
+                pre_transforms=pre_transforms,
+                post_transforms=post_transforms,
+                synonyms=synonyms
+            )
+        except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+            # Fall back to hardcoded patterns if script loading fails
+            print(f"Warning: Could not load script ({e}). Using default patterns.")
+            self._init_default_patterns()
+            keywords_to_preserve = list(self.keywords.keys())
+            self.transformations = Transformations(preserve_keywords=keywords_to_preserve)
+    
+    def _init_default_patterns(self):
+        """Initialize with hardcoded default patterns (fallback)."""
         # Keywords with decomposition/reassembly rules
         # Each keyword has a rank (priority) and decomposition rules
         # Each decomposition rule has a pattern and reassembly templates
@@ -254,6 +295,13 @@ class Eliza:
         for decomp_rule in keyword_data["decomposition"]:
             pattern = decomp_rule["pattern"]
             reassembly_templates = decomp_rule["reassembly"]
+            
+            # Convert pattern string to regex if needed (scripts use strings, not raw strings)
+            # Patterns from JSON are already strings, so we can use them directly
+            # But we need to ensure they work as regex patterns
+            if not pattern.startswith('r"') and not pattern.startswith("r'"):
+                # It's a regular string pattern, use it directly
+                pass
             
             # Try to match the pattern
             match = re.search(pattern, text, re.IGNORECASE)
