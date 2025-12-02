@@ -1,0 +1,211 @@
+{
+  "keywords": [
+    {
+      "word": "hello",
+      "rank": 0,
+      "decomposition": [
+        {
+          "pattern": ".*hello.*",
+          "reassembly": [
+            "Hello. How are you feeling today?",
+            "Hi there. What brings you here?",
+            "Hello. I'm here to listen."
+          ]
+        }
+      ]
+    },
+    {
+      "word": "mother",
+      "rank": 10,
+      "decomposition": [
+        {
+          "pattern": ".*mother.*",
+          "reassembly": [
+            "Tell me more about your family.",
+            "Who else in your family?",
+            "What about your family?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "father",
+      "rank": 10,
+      "decomposition": [
+        {
+          "pattern": ".*father.*",
+          "reassembly": [
+            "Tell me more about your family.",
+            "Who else in your family?",
+            "What about your family?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "am",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*i am not (.*)",
+          "reassembly": [
+            "Why are you not {0}?",
+            "What makes you not {0}?",
+            "Can you tell me more about not being {0}?"
+          ]
+        },
+        {
+          "pattern": ".*i am (.*)",
+          "reassembly": [
+            "Why are you {0}?",
+            "How long have you been {0}?",
+            "Do you enjoy being {0}?"
+          ]
+        },
+        {
+          "pattern": ".*i'm (.*)",
+          "reassembly": [
+            "Why are you {0}?",
+            "How does being {0} make you feel?",
+            "Tell me more about being {0}."
+          ]
+        }
+      ]
+    },
+    {
+      "word": "feel",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*i do not feel (.*)",
+          "reassembly": [
+            "What makes you not feel {0}?",
+            "Why don't you feel {0}?",
+            "Can you tell me more about not feeling {0}?"
+          ]
+        },
+        {
+          "pattern": ".*i feel (.*)",
+          "reassembly": [
+            "Do you often feel {0}?",
+            "What makes you feel {0}?",
+            "Can you tell me more about feeling {0}?"
+          ]
+        },
+        {
+          "pattern": ".*i'm feeling (.*)",
+          "reassembly": [
+            "Why do you think you're feeling {0}?",
+            "How long have you been feeling {0}?",
+            "What's causing you to feel {0}?"
+          ]
+        },
+        {
+          "pattern": ".*i .+ feel (.*)",
+          "reassembly": [
+            "What makes you feel {0}?",
+            "Can you tell me more about feeling {0}?",
+            "How does feeling {0} affect you?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "think",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*i think (.*)",
+          "reassembly": [
+            "What makes you think {0}?",
+            "Do you really think {0}?",
+            "Can you elaborate on why you think {0}?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "want",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*i want (.*)",
+          "reassembly": [
+            "Why do you want {0}?",
+            "What would it mean to you if you had {0}?",
+            "Tell me more about wanting {0}."
+          ]
+        }
+      ]
+    },
+    {
+      "word": "need",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*i need (.*)",
+          "reassembly": [
+            "Why do you need {0}?",
+            "What would happen if you didn't have {0}?",
+            "Tell me more about needing {0}."
+          ]
+        }
+      ]
+    }
+  ],
+  "pre": [
+    ["i'm", "i am"],
+    ["you're", "you are"],
+    ["he's", "he is"],
+    ["she's", "she is"],
+    ["it's", "it is"],
+    ["we're", "we are"],
+    ["they're", "they are"],
+    ["don't", "do not"],
+    ["doesn't", "does not"],
+    ["didn't", "did not"],
+    ["won't", "will not"],
+    ["wouldn't", "would not"],
+    ["can't", "cannot"],
+    ["cannot", "can not"],
+    ["couldn't", "could not"],
+    ["shouldn't", "should not"],
+    ["mustn't", "must not"],
+    ["isn't", "is not"],
+    ["aren't", "are not"],
+    ["wasn't", "was not"],
+    ["weren't", "were not"],
+    ["haven't", "have not"],
+    ["hasn't", "has not"],
+    ["hadn't", "had not"]
+  ],
+  "post": [
+    ["am", "are"],
+    ["is", "are"],
+    ["was", "were"],
+    ["i", "you"],
+    ["my", "your"],
+    ["myself", "yourself"]
+  ],
+  "synon": {
+    "be": ["am", "is", "are", "was", "were", "being", "been"],
+    "feel": ["feeling", "felt"],
+    "think": ["thinking", "thought", "believe", "believing"],
+    "want": ["wanting", "wanted", "wish", "wishing", "wished"],
+    "need": ["needing", "needed", "require", "requiring", "required"],
+    "mother": ["mom", "mommy", "mama", "mum", "mummy"],
+    "father": ["dad", "daddy", "papa", "pop"],
+    "family": ["families", "relatives"]
+  },
+  "quit": ["bye", "goodbye", "quit", "exit"],
+  "default": [
+    "I see.",
+    "Tell me more.",
+    "Go on.",
+    "I understand.",
+    "Can you elaborate on that?",
+    "What does that suggest to you?",
+    "How does that make you feel?"
+  ]
+}
+
