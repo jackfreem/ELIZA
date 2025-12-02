@@ -1,27 +1,34 @@
 """
 Core ELIZA engine - Pattern matching and response generation
 
-Now with decomposition and reassembly rules!
-This allows ELIZA to extract parts of sentences and use them in responses.
+Now with decomposition, reassembly, and transformations!
+- Decomposition/reassembly: Extract parts and use them in responses
+- Transformations: Normalize input and adjust responses
 """
 
 import re
 import random
 from typing import Dict, List, Optional, Tuple
 
+from eliza.transformations import Transformations
+
 
 class Eliza:
     """
-    ELIZA implementation with decomposition and reassembly rules.
+    ELIZA implementation with decomposition, reassembly, and transformations.
     
     This version adds:
     - Decomposition rules: Extract parts of sentences using patterns
     - Reassembly rules: Use extracted parts to build personalized responses
+    - Pre-transformations: Normalize input (contractions, synonyms)
+    - Post-transformations: Adjust responses (pronoun switching)
     
     Example:
-        Input: "I am sad"
+        Input: "I'm sad"
+        Pre-transform: "i am sad" (expands contraction)
         Pattern: "i am (.*)" matches and captures "sad"
         Response: "Why are you sad?" (uses the captured part)
+        Post-transform: "Why are you sad?" (already correct)
     """
     
     def __init__(self):
@@ -69,10 +76,22 @@ class Eliza:
                 ]
             },
             # "I am X" pattern - extracts X and uses it in response
+            # Note: More specific patterns must come first!
             "am": {
                 "rank": 5,
                 "decomposition": [
                     {
+                        # Handle negation FIRST (more specific pattern)
+                        # After normalization: "i am not X"
+                        "pattern": r".*i am not (.*)",
+                        "reassembly": [
+                            "Why are you not {0}?",
+                            "What makes you not {0}?",
+                            "Can you tell me more about not being {0}?"
+                        ]
+                    },
+                    {
+                        # General "I am X" pattern
                         "pattern": r".*i am (.*)",
                         "reassembly": [
                             "Why are you {0}?",
@@ -81,6 +100,7 @@ class Eliza:
                         ]
                     },
                     {
+                        # "I'm X" pattern (before normalization)
                         "pattern": r".*i'm (.*)",
                         "reassembly": [
                             "Why are you {0}?",
@@ -91,10 +111,22 @@ class Eliza:
                 ]
             },
             # "I feel X" pattern - extracts the feeling
+            # Note: More specific patterns must come first!
             "feel": {
                 "rank": 5,
                 "decomposition": [
                     {
+                        # Handle negation FIRST (more specific pattern)
+                        # After normalization: "i do not feel X"
+                        "pattern": r".*i do not feel (.*)",
+                        "reassembly": [
+                            "What makes you not feel {0}?",
+                            "Why don't you feel {0}?",
+                            "Can you tell me more about not feeling {0}?"
+                        ]
+                    },
+                    {
+                        # General "I feel X" pattern
                         "pattern": r".*i feel (.*)",
                         "reassembly": [
                             "Do you often feel {0}?",
@@ -103,11 +135,22 @@ class Eliza:
                         ]
                     },
                     {
+                        # "I'm feeling X" pattern (before normalization)
                         "pattern": r".*i'm feeling (.*)",
                         "reassembly": [
                             "Why do you think you're feeling {0}?",
                             "How long have you been feeling {0}?",
                             "What's causing you to feel {0}?"
+                        ]
+                    },
+                    {
+                        # More flexible: allow words between "i" and "feel" (fallback)
+                        # This catches cases like "i really feel X" or "i sometimes feel X"
+                        "pattern": r".*i .+ feel (.*)",
+                        "reassembly": [
+                            "What makes you feel {0}?",
+                            "Can you tell me more about feeling {0}?",
+                            "How does feeling {0} affect you?"
                         ]
                     }
                 ]
@@ -166,6 +209,11 @@ class Eliza:
             "What does that suggest to you?",
             "How does that make you feel?"
         ]
+        
+        # Initialize transformations with keyword preservation
+        # Preserve keywords so synonym normalization doesn't change them
+        keywords_to_preserve = list(self.keywords.keys())
+        self.transformations = Transformations(preserve_keywords=keywords_to_preserve)
     
     def _match_keyword(self, text: str) -> Optional[Tuple[str, Dict]]:
         """
@@ -234,10 +282,12 @@ class Eliza:
         Generate a response to user input using decomposition and reassembly.
         
         Process:
-        1. Find the highest priority keyword that appears in the input
-        2. Try each decomposition pattern for that keyword
-        3. If a pattern matches, extract parts and build a response
-        4. If no pattern matches, use a default response
+        1. Apply pre-transformations to normalize input (contractions, synonyms)
+        2. Find the highest priority keyword that appears in the input
+        3. Try each decomposition pattern for that keyword
+        4. If a pattern matches, extract parts and build a response
+        5. Apply post-transformations to adjust response (pronoun switching)
+        6. If no pattern matches, use a default response
         
         Args:
             user_input: The user's input string
@@ -245,19 +295,23 @@ class Eliza:
         Returns:
             A response string
         """
-        # Convert to lowercase for matching
-        input_lower = user_input.lower().strip()
+        # Apply pre-transformations to normalize input
+        # This expands contractions, normalizes synonyms, etc.
+        normalized_input = self.transformations.pre_transform(user_input)
         
         # Find matching keyword (highest priority)
-        keyword_match = self._match_keyword(input_lower)
+        keyword_match = self._match_keyword(normalized_input)
         
         if keyword_match:
             keyword, keyword_data = keyword_match
             
             # Try to decompose and reassemble
-            response = self._try_decomposition(input_lower, keyword_data)
+            response = self._try_decomposition(normalized_input, keyword_data)
             
             if response:
+                # Apply post-transformations to adjust response
+                # This switches pronouns, adjusts verb forms, etc.
+                response = self.transformations.post_transform(response)
                 return response
         
         # No decomposition matched - use default response
