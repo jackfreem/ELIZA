@@ -28,6 +28,10 @@ def main():
     except:
         quit_words = ['quit', 'exit', 'bye', 'goodbye']
     
+    # Display initial prompt
+    initial = eliza.get_initial()
+    print(f"ELIZA: {initial}\n")
+    
     while True:
         # Get user input
         user_input = input("You: ").strip()

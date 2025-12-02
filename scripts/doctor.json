@@ -151,8 +151,108 @@
           ]
         }
       ]
+    },
+    {
+      "word": "my",
+      "rank": 4,
+      "decomposition": [
+        {
+          "pattern": ".*my (.*)",
+          "reassembly": [
+            "Tell me more about your {0}.",
+            "What about your {0}?",
+            "Can you elaborate on your {0}?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "hate",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*everyone hates (.*)",
+          "reassembly": [
+            "Can you think of anyone in particular?",
+            "Who specifically do you think hates {0}?",
+            "What makes you think everyone hates {0}?"
+          ]
+        },
+        {
+          "pattern": ".*everybody hates (.*)",
+          "reassembly": [
+            "Can you think of anyone in particular?",
+            "Who specifically do you think hates {0}?",
+            "What makes you think everybody hates {0}?"
+          ]
+        },
+        {
+          "pattern": ".*(?:everyone|everybody) hates me",
+          "reassembly": [
+            "Can you think of anyone in particular?",
+            "Who specifically?",
+            "What makes you think everyone hates you?"
+          ]
+        },
+        {
+          "pattern": ".*i hate (.*)",
+          "reassembly": [
+            "What is it about {0} that you hate?",
+            "Why do you hate {0}?",
+            "Can you tell me more about hating {0}?"
+          ]
+        },
+        {
+          "pattern": ".*hate (.*)",
+          "reassembly": [
+            "What makes you hate {0}?",
+            "Why do you hate {0}?",
+            "Can you tell me more about hating {0}?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "everyone",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*everyone (.*)",
+          "reassembly": [
+            "Can you think of anyone in particular?",
+            "Who specifically?",
+            "What makes you think everyone {0}?"
+          ]
+        }
+      ]
+    },
+    {
+      "word": "everybody",
+      "rank": 5,
+      "decomposition": [
+        {
+          "pattern": ".*everybody (.*)",
+          "reassembly": [
+            "Can you think of anyone in particular?",
+            "Who specifically?",
+            "What makes you think everybody {0}?"
+          ]
+        }
+      ]
     }
   ],
+  "memory": {
+    "decomposition": [
+      {
+        "pattern": ".*",
+        "reassembly": [
+          "Let's discuss further why {0}.",
+          "Earlier you said {0}.",
+          "Can you tell me more about {0}?"
+        ]
+      }
+    ]
+  },
   "pre": [
     ["i'm", "i am"],
     ["you're", "you are"],
@@ -181,14 +281,15 @@
   ],
   "post": [
     ["am", "are"],
-    ["is", "are"],
     ["was", "were"],
     ["i", "you"],
     ["my", "your"],
-    ["myself", "yourself"]
+    ["myself", "yourself"],
+    ["me", "you"],
+    ["mine", "yours"]
   ],
   "synon": {
-    "be": ["am", "is", "are", "was", "were", "being", "been"],
+    "be": ["am", "are", "was", "were", "being", "been"],
     "feel": ["feeling", "felt"],
     "think": ["thinking", "thought", "believe", "believing"],
     "want": ["wanting", "wanted", "wish", "wishing", "wished"],
@@ -198,6 +299,12 @@
     "family": ["families", "relatives"]
   },
   "quit": ["bye", "goodbye", "quit", "exit"],
+  "initial": [
+    "Please tell me what's been bothering you.",
+    "How do you do. Please tell me your problem.",
+    "Is something troubling you?",
+    "What seems to be the problem?"
+  ],
   "default": [
     "I see.",
     "Tell me more.",

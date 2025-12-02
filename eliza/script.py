@@ -161,4 +161,20 @@ class ScriptLoader:
             "What does that suggest to you?",
             "How does that make you feel?"
         ])
+    
+    def get_initial_prompts(self) -> List[str]:
+        """
+        Extract initial prompts from script.
+        
+        Returns:
+            List of initial prompts to use when starting a conversation
+        """
+        if self.script_data is None:
+            raise ValueError("Script not loaded. Call load() first.")
+        
+        return self.script_data.get("initial", [
+            "How do you do. Please tell me your problem.",
+            "Is something troubling you?",
+            "What seems to be the problem?"
+        ])
 

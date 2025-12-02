@@ -113,10 +113,11 @@ class Transformations:
             self.post_transforms: List[Tuple[str, str]] = [
                 # First person to second person (user's perspective)
                 # But avoid changing "me" in common phrases like "tell me"
+                # Note: "is" is NOT changed to "are" - "your X is Y" is correct
                 (r"\bam\b", "are"),
-                (r"\bis\b", "are"),
                 (r"\bwas\b", "were"),
-                (r"\bi\b", "you"),
+                # Only change "I" if it's not part of "I'm" (ELIZA's own words)
+                (r"\bi\b(?!'m\b)", "you"),
                 (r"\bmy\b", "your"),
                 (r"\bmyself\b", "yourself"),
                 # Only change "me" if it's not part of "tell me" or similar phrases
@@ -132,7 +133,8 @@ class Transformations:
         else:
             # Use defaults
             self.synonyms: Dict[str, List[str]] = {
-            "be": ["am", "is", "are", "was", "were", "being", "been"],
+            # Note: "is" is NOT included in "be" synonyms - it should stay as "is"
+            "be": ["am", "are", "was", "were", "being", "been"],
             "feel": ["feeling", "felt"],
             "think": ["thinking", "thought", "believe", "believing"],
             "want": ["wanting", "wanted", "wish", "wishing", "wished"],
@@ -209,6 +211,9 @@ class Transformations:
         - Switching pronouns ("I" -> "you", "my" -> "your")
         - Adjusting verb forms ("am" -> "are")
         
+        Note: We need to be careful not to change ELIZA's own words like "I'm"
+        or phrases like "tell me", "show me", etc.
+        
         Args:
             text: Response text from reassembly
             
@@ -217,9 +222,31 @@ class Transformations:
         """
         transformed = text
         
+        # Protect phrases that should not be transformed
+        # These are ELIZA's own words/phrases
+        placeholders = {}
+        protected_phrases = [
+            (r"\bi'm\b", "___ELIZA_IM___"),
+            (r"\btell me\b", "___TELL_ME___"),
+            (r"\bshow me\b", "___SHOW_ME___"),
+            (r"\bask me\b", "___ASK_ME___"),
+            (r"\bremind me\b", "___REMIND_ME___"),
+        ]
+        
+        for phrase_pattern, placeholder in protected_phrases:
+            matches = list(re.finditer(phrase_pattern, transformed, flags=re.IGNORECASE))
+            for match in matches:
+                original = match.group(0)
+                placeholders[placeholder] = original
+                transformed = transformed.replace(original, placeholder, 1)
+        
         # Apply post-transformations
         for pattern, replacement in self.post_transforms:
             transformed = re.sub(pattern, replacement, transformed, flags=re.IGNORECASE)
+        
+        # Restore protected phrases
+        for placeholder, original in placeholders.items():
+            transformed = transformed.replace(placeholder, original)
         
         # Capitalize first letter
         if transformed:

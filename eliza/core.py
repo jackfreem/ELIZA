@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Tuple
 
 from eliza.transformations import Transformations
 from eliza.script import ScriptLoader
+from eliza.memory import Memory
 
 
 class Eliza:
@@ -45,12 +46,14 @@ class Eliza:
         # Try to load from script file
         self.keywords: Dict[str, Dict] = {}
         self.default_responses: List[str] = []
+        self.initial_prompts: List[str] = []
         
         try:
             script_loader = ScriptLoader(script_path)
             script_data = script_loader.load()
             self.keywords = script_loader.get_keywords()
             self.default_responses = script_loader.get_default_responses()
+            self.initial_prompts = script_loader.get_initial_prompts()
             
             # Update transformations with script data
             pre_transforms = script_loader.get_pre_transforms()
@@ -64,12 +67,44 @@ class Eliza:
                 post_transforms=post_transforms,
                 synonyms=synonyms
             )
+            
+            # Load MEMORY rules from script if available
+            memory_rules = script_data.get("memory", None)
         except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
             # Fall back to hardcoded patterns if script loading fails
             print(f"Warning: Could not load script ({e}). Using default patterns.")
             self._init_default_patterns()
             keywords_to_preserve = list(self.keywords.keys())
             self.transformations = Transformations(preserve_keywords=keywords_to_preserve)
+            memory_rules = None
+            self.initial_prompts = [
+                "How do you do. Please tell me your problem.",
+                "Is something troubling you?",
+                "What seems to be the problem?"
+            ]
+        
+        # Ensure initial_prompts is set (in case script loading succeeded but didn't have initial)
+        if not hasattr(self, 'initial_prompts') or not self.initial_prompts:
+            self.initial_prompts = [
+                "How do you do. Please tell me your problem.",
+                "Is something troubling you?",
+                "What seems to be the problem?"
+            ]
+        
+        # Initialize memory system
+        self.memory = Memory()
+        self.memory_rules = memory_rules or {
+            "decomposition": [
+                {
+                    "pattern": ".*",
+                    "reassembly": [
+                        "Let's discuss further why {0}.",
+                        "Earlier you said {0}.",
+                        "Can you tell me more about {0}?"
+                    ]
+                }
+            ]
+        }
     
     def _init_default_patterns(self):
         """Initialize with hardcoded default patterns (fallback)."""
@@ -347,6 +382,16 @@ class Eliza:
         # This expands contractions, normalizes synonyms, etc.
         normalized_input = self.transformations.pre_transform(user_input)
         
+        # Check if "my" appears in input - if so, store in memory
+        # According to the original ELIZA paper, when "my" is present, store the sentence
+        # We check this before keyword matching to ensure we capture it
+        if "my" in normalized_input:
+            # Store the post-transformed normalized input in memory
+            # The original paper stores transformed sentences
+            # We transform the normalized input (not the original) so pronouns are properly switched
+            transformed_user_input = self.transformations.post_transform(normalized_input)
+            self.memory.store(transformed_user_input.lower())
+        
         # Find matching keyword (highest priority)
         keyword_match = self._match_keyword(normalized_input)
         
@@ -362,6 +407,118 @@ class Eliza:
                 response = self.transformations.post_transform(response)
                 return response
         
+        # No keyword matched - try MEMORY
+        # Use memory if available, but prefer default responses for:
+        # - Responses starting with "yes"/"no" etc. (these are acknowledgments)
+        # - Very short inputs that are common words
+        if self.memory.has_memory():
+            # Check if input starts with common response/acknowledgment words
+            # Strip punctuation to handle "yes," "no." etc.
+            common_starters = {"yes", "no", "ok", "okay", "sure", "right", "yeah", "yep", "nope", "yea"}
+            if normalized_input.split():
+                first_word_raw = normalized_input.split()[0].lower()
+                # Remove punctuation
+                first_word = re.sub(r'[^\w]', '', first_word_raw)
+            else:
+                first_word = ""
+            
+            # If input starts with acknowledgment words, use default (not memory)
+            # Memory should be used for truly nonsensical/random inputs
+            if first_word in common_starters:
+                # Use default response for "yes"/"no" type responses
+                pass
+            else:
+                # Use memory for nonsensical inputs (like "potato")
+                # Memory is removed after use (consumed) - matches original ELIZA
+                recalled = self.memory.recall(remove=True)  # Remove after use
+                if recalled:
+                    # Use MEMORY decomposition rules
+                    for decomp_rule in self.memory_rules["decomposition"]:
+                        pattern = decomp_rule["pattern"]
+                        reassembly_templates = decomp_rule["reassembly"]
+                        
+                        # Try to match the pattern against the recalled memory
+                        match = re.search(pattern, recalled, re.IGNORECASE)
+                        if match:
+                            # Use the recalled memory as {0}
+                            template = random.choice(reassembly_templates)
+                            
+                            # Transform memory for templates that need noun phrases
+                            # Templates like "Can you tell me more about {0}?" need gerund form
+                            memory_for_template = self._transform_memory_for_template(recalled, template)
+                            
+                            response = template.format(memory_for_template)
+                            response = self.transformations.post_transform(response)
+                            return response
+        
         # No decomposition matched - use default response
         return random.choice(self.default_responses)
+    
+    def _transform_memory_for_template(self, memory: str, template: str) -> str:
+        """
+        Transform recalled memory to work grammatically with different templates.
+        
+        Some templates need noun phrases (gerunds), others work with full sentences.
+        For example:
+        - "Earlier you said {0}." works with "your mother hates me"
+        - "Can you tell me more about {0}?" needs "your mother hating you" (gerund)
+        
+        Args:
+            memory: The recalled memory sentence
+            template: The template it will be inserted into
+            
+        Returns:
+            Transformed memory that works grammatically with the template
+        """
+        # Check if template needs a noun phrase (gerund form)
+        # Templates with "about" or "why" often need different forms
+        if "about" in template.lower():
+            # Convert "your mother hates me" -> "your mother hating you"
+            # Simple heuristic: find verb and convert to gerund
+            # "hates" -> "hating", "is" -> "being", etc.
+            transformed = memory
+            
+            # Convert common verb forms to gerunds
+            verb_to_gerund = {
+                r"\bhates\b": "hating",
+                r"\bhate\b": "hating",
+                r"\bis\b": "being",
+                r"\bare\b": "being",
+                r"\bwas\b": "being",
+                r"\bwere\b": "being",
+                r"\bfeels\b": "feeling",
+                r"\bfeel\b": "feeling",
+                r"\bthinks\b": "thinking",
+                r"\bthink\b": "thinking",
+                r"\bwants\b": "wanting",
+                r"\bwant\b": "wanting",
+                r"\bneeds\b": "needing",
+                r"\bneed\b": "needing",
+            }
+            
+            for verb_pattern, gerund in verb_to_gerund.items():
+                transformed = re.sub(verb_pattern, gerund, transformed, flags=re.IGNORECASE)
+            
+            # Also change "me" to "you" for gerund forms
+            transformed = re.sub(r"\bme\b", "you", transformed, flags=re.IGNORECASE)
+            
+            return transformed
+        elif "why" in template.lower():
+            # "Let's discuss further why {0}." - can use full sentence or add "you"
+            # Keep as-is, it works
+            return memory
+        else:
+            # Default: use memory as-is (works for "Earlier you said {0}.")
+            return memory
+    
+    def get_initial(self) -> str:
+        """
+        Get an initial prompt to start the conversation.
+        
+        Returns:
+            A random initial prompt from the script
+        """
+        if self.initial_prompts:
+            return random.choice(self.initial_prompts)
+        return "How do you do. Please tell me your problem."
 
